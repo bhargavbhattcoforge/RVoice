@@ -9,9 +9,15 @@ import ActionList from './components/ActionList.jsx';
 import ClusterList from './components/ClusterList.jsx';
 import SpikeList from './components/SpikeList.jsx';
 import DetailModal from './components/DetailModal.jsx';
+import TrendChart from './components/TrendChart.jsx';
+import AnomalyAlert from './components/AnomalyAlert.jsx';
+import RecommendationPanel from './components/RecommendationPanel.jsx';
+import CorrelationView from './components/CorrelationView.jsx';
+import DemoControls from './components/DemoControls.jsx';
 import { fetchJson, patchJson, postJson } from './services/api.js';
 import { formatDate } from './utils/format.js';
 import { buildClusters, buildSpikes } from './utils/dashboard.js';
+import './components/NewComponents.css';
 
 const initialFilters = { product: '', journeyStage: '', sentiment: '' };
 const initialIngest = {
@@ -309,6 +315,16 @@ export default function App() {
         <MetricGrid summary={summary} />
 
         <InsightsPanel overview={overview} />
+
+        <DemoControls />
+
+        <TrendChart product={filters.product || 'ProductA'} days={30} />
+
+        <AnomalyAlert product={filters.product || 'ProductA'} />
+
+        <RecommendationPanel />
+
+        <CorrelationView product={filters.product || 'ProductA'} />
 
         <FiltersPanel
           filters={filters}

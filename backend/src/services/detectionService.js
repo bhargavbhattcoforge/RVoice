@@ -1,7 +1,10 @@
 export function scoreTheme(theme) {
-  const base = theme.aspects.length;
-  const negativeCount = theme.aspects.filter((aspect) => aspect.sentiment === 'negative').length;
-  const positiveCount = theme.aspects.filter((aspect) => aspect.sentiment === 'positive').length;
+  // Handle both old aspects array and new aspectKeywords string formats
+  const aspects = Array.isArray(theme.aspects) ? theme.aspects : (theme.aspectKeywords ? theme.aspectKeywords.split(',').map(a => ({ aspect: a.trim() })) : []);
+  
+  const base = aspects.length;
+  const negativeCount = aspects.filter((aspect) => aspect.sentiment === 'negative').length;
+  const positiveCount = aspects.filter((aspect) => aspect.sentiment === 'positive').length;
   const sentimentWeight = negativeCount - positiveCount;
   const issueScore = Math.max(0, base + sentimentWeight);
 
