@@ -59,12 +59,14 @@ const RecommendationPanel = () => {
           {recommendations.map((rec, idx) => (
             <div key={idx} className={`recommendation-card priority-${rec.severity}`}>
               <div className="rec-header">
-                <span className="priority-badge">{rec.severity.toUpperCase()}</span>
+                {/* <span className="priority-badge">{rec.severity.toUpperCase()}</span> */}
+                <span className="priority-badge">{rec.severity?.toUpperCase() || 'UNKNOWN'}</span>
                 <span className="rec-score">Score: {rec.issueScore.toFixed(2)}</span>
               </div>
 
               <div className="rec-content">
-                <p className="rec-issue">Issue: {rec.text.substring(0, 80)}...</p>
+                {/* <p className="rec-issue">Issue: {rec.text.substring(0, 100)}...</p> */}
+                <p className="rec-issue">Issue: {rec.text?.substring(0, 100) || 'No details provided'}...</p>
                 <p className="rec-action">{getRecommendedAction(rec)}</p>
               </div>
 
