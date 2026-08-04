@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retail VoC Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Retail VoC Insight</h1>
+    <p>Unified feedback, themes, issue scoring, and action recommendations.</p>
+  </header>
+  <main>
+    <section class="card" id="health-card">
+      <h2>Backend status</h2>
+      <div id="health">Loading...</div>
+    </section>
+
+    <section class="card" id="overview-card">
+      <h2>Overview</h2>
+      <button id="load-overview">Load Overview</button>
+      <div id="overview">Click Load Overview to fetch actions, clusters, and spikes in one request.</div>
+    </section>
+
+    <section class="card" id="actions-card">
+      <h2>Recommended Actions</h2>
+      <button id="load-actions">Load Actions</button>
+      <div id="actions">Click Load Actions to fetch suggested work items.</div>
+    </section>
+
+    <section class="card" id="clusters-card">
+      <h2>Theme Clusters</h2>
+      <button id="load-clusters">Load Clusters</button>
+      <div id="clusters">Click Load Clusters to view grouped issues.</div>
+    </section>
+
+    <section class="card" id="spikes-card">
+      <h2>Emerging Issues</h2>
+      <button id="load-spikes">Load Spikes</button>
+      <div id="spikes">Click Load Spikes to fetch detected trends.</div>
+    </section>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
