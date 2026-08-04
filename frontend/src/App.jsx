@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Header from './components/Header.jsx';
 import MetricGrid from './components/MetricGrid.jsx';
+import InsightsPanel from './components/InsightsPanel.jsx';
 import FiltersPanel from './components/FiltersPanel.jsx';
 import IngestCard from './components/IngestCard.jsx';
 import ThemeList from './components/ThemeList.jsx';
@@ -62,7 +63,9 @@ export default function App() {
   const summary = useMemo(
     () => ({
       themeCount: overview?.themeCount ?? filteredThemes.length,
-      actionCount: actions.length,
+      actionCount: overview?.actionCount ?? actions.length,
+      openActionCount: overview?.openActionCount ?? 0,
+      feedbackCount: overview?.feedbackCount ?? 0,
       clusterCount: clusters.length,
       spikeCount: spikes.length,
     }),
@@ -304,6 +307,8 @@ export default function App() {
         </section>
 
         <MetricGrid summary={summary} />
+
+        <InsightsPanel overview={overview} />
 
         <FiltersPanel
           filters={filters}

@@ -10,6 +10,14 @@ export default function MetricGrid({ summary }) {
         <strong>{summary.actionCount}</strong>
       </div>
       <div className="metric-box">
+        <span className="metric-label">Open actions</span>
+        <strong>{summary.openActionCount}</strong>
+      </div>
+      <div className="metric-box">
+        <span className="metric-label">Feedback items</span>
+        <strong>{summary.feedbackCount}</strong>
+      </div>
+      <div className="metric-box">
         <span className="metric-label">Clusters</span>
         <strong>{summary.clusterCount}</strong>
       </div>
