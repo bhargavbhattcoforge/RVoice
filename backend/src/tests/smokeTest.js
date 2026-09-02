@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 async function run() {
   const health = await fetch('http://localhost:4000/api/health');
   const healthData = await health.json();

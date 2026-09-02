@@ -1,9 +1,10 @@
 import express from 'express';
 import { estimateThemes, getThemes } from '../services/themeService.js';
+import { requireAnyRole } from '../auth/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/estimate', async (req, res) => {
+router.post('/estimate', requireAnyRole('admin', 'analyst'), async (req, res) => {
   try {
     const themes = await estimateThemes(req.body.items || []);
     res.status(200).json({ themes });

@@ -1,9 +1,10 @@
 import express from 'express';
 import { ingestFeedback, getFeedback } from '../services/feedbackService.js';
+import { requireAnyRole } from '../auth/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/ingest', async (req, res) => {
+router.post('/ingest', requireAnyRole('admin', 'ingest'), async (req, res) => {
   try {
     const items = await ingestFeedback(req.body.items || []);
     res.status(201).json({ ingested: items.length, items });

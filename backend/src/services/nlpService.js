@@ -1,135 +1,175 @@
-// Enhanced NLP service with 15+ aspects, negation handling, entity extraction, and duplicate detection
+import nlp from 'compromise';
+import { SENTIMENT_LEXICON, NEGATION_TERMS, INTENSIFIERS, ASPECT_KEYWORDS } from './sentimentLexicon.js';
+import { analyzeSentimentMl } from './aiSentimentService.js';
 
-const POSITIVE_WORDS = ['great', 'good', 'excellent', 'love', 'easy', 'fast', 'helpful', 'positive', 'perfect', 'amazing', 'fantastic', 'wonderful', 'fantastic', 'impressed', 'satisfied'];
+// Main entry point for enhanced sentiment analysis using compromise
+export function analyzeSentiment(text) {
+  const doc = nlp(text || '');
+  const normalized = (text || '').toLowerCase();
 
-const NEGATIVE_WORDS = ['bad', 'terrible', 'poor', 'slow', 'broken', 'hate', 'worst', 'frustrating', 'delay', 'issue', 'problem', 'error', 'crash', 'failed', 'disappointing', 'awful', 'useless'];
+  // Detect negation and intensifiers
+  const negated = detectNegation(doc);
+  const intensifiers = detectIntensifiers(doc);
 
-const NEGATION_WORDS = ['not', 'no', 'never', 'neither', "don't", "didn't", "doesn't", "won't", "wouldn't"];
+  // Find matched sentiment terms
+  const matchedTerms = findMatchedTerms(doc);
 
-// 15+ business aspects with keyword mappings
-const ASPECT_KEYWORDS = {
-  'checkout': ['checkout', 'payment', 'cart', 'purchase', 'billing', 'payment method', 'credit card', 'proceed to checkout'],
-  'delivery': ['delivery', 'shipping', 'late', 'delay', 'shipment', 'delivered', 'tracking', 'fedex', 'ups', 'delivery time'],
-  'product-quality': ['quality', 'defect', 'broken', 'damaged', 'packaging', 'durability', 'workmanship', 'material', 'craftsmanship'],
-  'customer-support': ['support', 'customer service', 'agent', 'help', 'assistance', 'contact', 'representative', 'response time', 'helpful'],
-  'store-experience': ['store', 'location', 'staff', 'line', 'wait', 'cleanliness', 'layout', 'checkout', 'register', 'parking'],
-  'pricing': ['price', 'expensive', 'cheap', 'cost', 'value', 'discount', 'promotion', 'coupon', 'expensive', 'overpriced', 'affordable'],
-  'returns': ['return', 'refund', 'exchange', 'warranty', 'replacement', 'return policy', 'refund process'],
-  'packaging': ['packaging', 'box', 'wrapping', 'protection', 'unboxing', 'presentation', 'label'],
-  'website-usability': ['website', 'app', 'mobile', 'interface', 'navigation', 'search', 'user-friendly', 'loading', 'responsive'],
-  'mobile-app': ['mobile', 'app', 'ios', 'android', 'download', 'install', 'crash', 'bug', 'feature'],
-  'personalization': ['recommendation', 'personalized', 'suggestion', 'relevant', 'tailored', 'customized', 'preference'],
-  'inventory': ['stock', 'out of stock', 'availability', 'in stock', 'inventory', 'available'],
-  'shipping-speed': ['fast shipping', 'two-day', 'overnight', 'express', 'slow delivery', 'quick shipment'],
-  'product-variety': ['variety', 'selection', 'choice', 'options', 'range', 'catalog', 'assortment'],
-  'brand-trust': ['brand', 'trust', 'reputation', 'authentic', 'genuine', 'counterfeit', 'reliable', 'established'],
-};
+  // Compute raw score from lexicon
+  let rawScore = matchedTerms.reduce((sum, term) => sum + SENTIMENT_LEXICON[term], 0);
 
-// Entity types to extract
-const ENTITY_PATTERNS = {
-  PRODUCT_NAME: /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g,
-  PAYMENT_METHOD: /credit card|debit card|paypal|apple pay|google pay|amazon pay/gi,
-  LOCATION: /store|location|branch|outlet|warehouse/gi,
-};
+  // Apply negation
+  rawScore = applyNegation(rawScore, negated);
 
-export function extractAspectsAndSentiment(text) {
-  const normalized = (text || '').toLowerCase().trim();
+  // Apply intensifiers
+  rawScore = applyIntensifiers(rawScore, intensifiers);
 
-  // Compute sentiment with negation handling
-  const sentiment = computePolarityWithNegation(normalized);
-  
+  // Clamp to [-1, 1]
+  const score = clampScore(rawScore);
+
+  // Compute confidence
+  const confidence = computeConfidence(matchedTerms, normalized.length);
+
+  // Determine sentiment label
+  const sentiment = getSentimentLabel(score);
+
   // Extract aspects
-  const aspects = extractAspects(normalized);
-  
-  // Extract entities
-  const entities = extractEntities(text);
+  const aspects = extractAspects(text, doc);
 
-  return { 
-    sentiment, 
-    aspects: aspects.length > 0 ? aspects : [{ aspect: 'general', sentiment }],
-    entities,
-    textLength: text.length,
-  };
+  return { sentiment, score, confidence, aspects };
 }
 
-function computePolarityWithNegation(text) {
-  let score = 0;
-  const sentences = text.split(/[.!?]/);
-
-  for (const sentence of sentences) {
-    const hasNegation = NEGATION_WORDS.some(word => sentence.includes(word));
-    
-    POSITIVE_WORDS.forEach((word) => {
-      if (sentence.includes(word)) {
-        score += hasNegation ? -1 : 1;
-      }
-    });
-
-    NEGATIVE_WORDS.forEach((word) => {
-      if (sentence.includes(word)) {
-        score += hasNegation ? 1 : -1;
-      }
-    });
-  }
-
-  if (score > 0) return 'positive';
-  if (score < 0) return 'negative';
-  return 'neutral';
-}
-
-function extractAspects(text) {
+// Extract aspects from text using the expanded ASPECT_KEYWORDS mapping
+export function extractAspects(text, doc) {
+  const normalized = (text || '').toLowerCase();
   const aspects = [];
-  const seenAspects = new Set();
 
   for (const [aspect, keywords] of Object.entries(ASPECT_KEYWORDS)) {
-    for (const keyword of keywords) {
-      if (text.includes(keyword.toLowerCase())) {
-        if (!seenAspects.has(aspect)) {
-          aspects.push({ aspect, sentiment: 'neutral' }); // sentiment will be set by calling function
-          seenAspects.add(aspect);
-        }
-        break; // Found this aspect, move to next
-      }
+    const matchedKeyword = keywords.find((keyword) => normalized.includes(keyword));
+    if (matchedKeyword) {
+      aspects.push(analyzeAspect(text, doc, aspect));
     }
+  }
+
+  if (aspects.length === 0) {
+    aspects.push(analyzeAspect(text, doc, 'general'));
   }
 
   return aspects;
 }
 
-function extractEntities(text) {
-  const entities = {
-    paymentMethods: [],
-    locations: [],
-    productNames: [],
+// Calculate confidence score in [0, 1] based on matched terms and text length
+export function computeConfidence(matchedTerms, textLength) {
+  if (textLength === 0) return 0;
+  const termFactor = Math.min(1, matchedTerms.length / 3);
+  const lengthFactor = Math.min(1, textLength / 50);
+  return Math.round(Math.min(1, termFactor * 0.7 + lengthFactor * 0.3) * 100) / 100;
+}
+
+// Flip sentiment score when negation is detected (e.g., "not good" → negative)
+export function applyNegation(score, negated) {
+  return negated ? -score : score;
+}
+
+// Amplify or dampen sentiment score based on detected intensifier terms
+export function applyIntensifiers(score, intensifiers) {
+  let multiplier = 1;
+  intensifiers.forEach((intensifier) => {
+    multiplier *= INTENSIFIERS[intensifier] || 1;
+  });
+  return score * multiplier;
+}
+
+// Detect negation terms in the text using compromise tokenization
+export function detectNegation(doc) {
+  const text = doc.text().toLowerCase();
+  return NEGATION_TERMS.some(
+    (term) => text.includes(term) && SENTIMENT_LEXICON[term] === undefined
+  );
+}
+
+// Detect intensifier terms in the text
+export function detectIntensifiers(doc) {
+  const text = doc.text().toLowerCase();
+  return Object.keys(INTENSIFIERS).filter((intensifier) => text.includes(intensifier));
+}
+
+// Backward-compatible wrapper that returns { sentiment, aspects } plus new fields
+export function extractAspectsAndSentiment(text) {
+  const analysis = analyzeSentiment(text);
+  return {
+    sentiment: analysis.sentiment,
+    score: analysis.score,
+    confidence: analysis.confidence,
+    aspects: analysis.aspects,
   };
-
-  const paymentMatches = text.match(ENTITY_PATTERNS.PAYMENT_METHOD);
-  if (paymentMatches) {
-    entities.paymentMethods = [...new Set(paymentMatches.map(m => m.toLowerCase()))];
-  }
-
-  const locationMatches = text.match(ENTITY_PATTERNS.LOCATION);
-  if (locationMatches) {
-    entities.locations = [...new Set(locationMatches)];
-  }
-
-  return entities;
 }
 
-export function detectDuplicates(text1, text2) {
-  // Jaccard similarity: |intersection| / |union|
-  const normalize = (t) => t.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  
-  const words1 = new Set(normalize(text1));
-  const words2 = new Set(normalize(text2));
-  
-  const intersection = new Set([...words1].filter(w => words2.has(w)));
-  const union = new Set([...words1, ...words2]);
-  
-  const similarity = intersection.size / union.size;
-  return similarity >= 0.7; // 70% similar = duplicate
+// Enhanced sentiment analysis that uses the ML layer when available,
+// falling back to the rule-based pipeline otherwise.
+// Returns a Promise<{ sentiment, score, confidence, aspects, ml }>
+export async function analyzeSentimentEnhanced(text) {
+  const ruleBased = analyzeSentiment(text);
+
+  // Try ML first; if unavailable, return rule-based result
+  const mlResult = await analyzeSentimentMl(text);
+  if (!mlResult) {
+    return { ...ruleBased, ml: false };
+  }
+
+  // Blend: prefer ML when its confidence is high, otherwise keep rule-based
+  const useMl = mlResult.confidence >= 0.6;
+  return {
+    sentiment: useMl ? mlResult.sentiment : ruleBased.sentiment,
+    score: useMl ? mlResult.score : ruleBased.score,
+    confidence: useMl ? mlResult.confidence : ruleBased.confidence,
+    aspects: ruleBased.aspects,
+    ml: useMl,
+    mlModel: useMl ? mlResult.model : null,
+  };
 }
 
-export function computePolarity(text) {
-  return computePolarityWithNegation((text || '').toLowerCase());
+// Helper: find sentiment terms in the text
+function findMatchedTerms(doc) {
+  const terms = doc.terms().out('array');
+  return terms
+    .map((t) => (typeof t === 'string' ? t : t.text || '').toLowerCase())
+    .map((term) => term.replace(/[^a-z\s]/g, '')) // strip punctuation
+    .filter((term) => term.length > 0 && SENTIMENT_LEXICON[term] !== undefined);
+}
+
+// Helper: analyze sentiment for a single aspect
+function analyzeAspect(text, doc, aspect) {
+  const normalized = (text || '').toLowerCase();
+  const matchedTerms = findMatchedTerms(doc);
+  const negated = detectNegation(doc);
+  const intensifiers = detectIntensifiers(doc);
+
+  let rawScore = matchedTerms.reduce((sum, term) => sum + SENTIMENT_LEXICON[term], 0);
+  rawScore = applyNegation(rawScore, negated);
+  rawScore = applyIntensifiers(rawScore, intensifiers);
+
+  const score = clampScore(rawScore);
+  const confidence = computeConfidence(matchedTerms, normalized.length);
+  const sentiment = getSentimentLabel(score);
+
+  return {
+    aspect,
+    sentiment,
+    score,
+    confidence,
+    matchedTerms,
+    negated,
+  };
+}
+
+// Helper: clamp score to [-1, 1]
+function clampScore(score) {
+  return Math.max(-1, Math.min(1, score));
+}
+
+// Helper: determine sentiment label from score
+function getSentimentLabel(score) {
+  if (score > 0.1) return 'positive';
+  if (score < -0.1) return 'negative';
+  return 'neutral';
 }

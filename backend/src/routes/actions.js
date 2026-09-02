@@ -1,6 +1,7 @@
 import express from 'express';
 import { recommendActionsForTheme, persistActions, getActions, updateAction } from '../services/actionService.js';
 import { getThemes } from '../services/themeService.js';
+import { requireAnyRole } from '../auth/authMiddleware.js';
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAnyRole('admin', 'manager'), async (req, res) => {
   try {
     const themes = await getThemes(req.body.query || {});
     const actions = themes.map((theme) => recommendActionsForTheme(theme));
@@ -24,7 +25,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:actionId', async (req, res) => {
+router.patch('/:actionId', requireAnyRole('admin', 'manager'), async (req, res) => {
   try {
     const updated = await updateAction(req.params.actionId, req.body);
     res.json({ action: updated });

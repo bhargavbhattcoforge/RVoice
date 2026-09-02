@@ -22,6 +22,18 @@ npm run dev
 - `POST /api/themes/estimate` - estimate themes from items
 - `GET /api/themes` - list generated themes
 
+## Authentication
+The backend supports OpenID Connect and local JSON-based role fallback for development.
+
+- `REQUIRE_AUTH=false` disables strict token validation
+- `LOCAL_AUTH_ENABLED=true` enables the local role fallback
+- `LOCAL_ROLES_FILE` points to the JSON file with sample users and roles
+
+Local JSON role fallback works with request headers:
+- `x-local-user`
+- `x-local-email`
+- `x-local-roles`
+
 ## Feedback item schema
 ```json
 {

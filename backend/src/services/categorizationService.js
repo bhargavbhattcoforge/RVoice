@@ -1,3 +1,5 @@
+import { extractThemesMl } from './aiThemeService.js';
+
 const stageKeywords = {
   browse: ['browse', 'search', 'discover', 'find'],
   checkout: ['checkout', 'cart', 'payment', 'payment method', 'card'],
@@ -38,4 +40,30 @@ export function categorizeFeedbackItem(item) {
   }
 
   return category;
+}
+
+// Enhanced categorization that augments the keyword-based result with
+// ML theme extraction when available. Returns a Promise.
+export async function categorizeFeedbackItemEnhanced(item) {
+  const base = categorizeFeedbackItem(item);
+  const text = item.text || '';
+
+  // Try ML theme extraction; if unavailable, return base result
+  const mlResult = await extractThemesMl(text);
+  if (!mlResult || !mlResult.themes || mlResult.themes.length === 0) {
+    return { ...base, ml: false };
+  }
+
+  // Use the top ML theme as the journey stage if keyword matching found none
+  const topTheme = mlResult.themes[0];
+  const journeyStage = base.journeyStage || topTheme.label;
+
+  return {
+    ...base,
+    journeyStage,
+    ml: true,
+    mlThemes: mlResult.themes,
+    mlConfidence: mlResult.confidence,
+    mlModel: mlResult.model,
+  };
 }
